@@ -1,4 +1,6 @@
 import random
+from enum import Enum
+from typing import Optional
 import arcade
 import arcade.key as keys
 import operator
@@ -10,10 +12,18 @@ COIN_COUNT = 50
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 
+PLAYER_MOVEMENT_SPEED = 5
+GRAVITY = 1
+
+
+class GameState(Enum):
+    MENU = 1
+    GAME = 2
+
 
 class Player(arcade.Sprite):
     def update(self):
-        self.center_x += 10
+        self.center_x += 0.05
 
 
 class Bot(arcade.Sprite):
@@ -31,7 +41,16 @@ class MyGame(arcade.Window):
         self.bot_sprite = None
         self.input_result = ''
         self.example = ''
+        self.example_result = None
+        self.result_color = arcade.color.RED
+        self.result_message = ''
+        self.game_state = GameState.MENU
         arcade.set_background_color(arcade.color.ALMOND)
+        self.physics_engine = Optional[arcade.PymunkPhysicsEngine]
+
+
+
+
 
     def setup(self):
         self.player_list = arcade.SpriteList()
@@ -47,40 +66,77 @@ class MyGame(arcade.Window):
         self.bot_sprite.center_y = 120
         self.bot_list.append(self.bot_sprite)
         self.example = self.generate_example()
+        self.physics_engine = arcade.PymunkPhysicsEngine()
+        self.physics_engine.add_sprite(self.bot_sprite,
+                                       friction=1,
+                                       mass=10,
+                
+                                       max_horizontal_velocity=10,
+                                       max_vertical_velocity=10)
+    
+    def on_update(self, delta_time):
+        """ Movement and game logic """
+        self.physics_engine.step()
 
     def on_draw(self):
         arcade.start_render()
         self.player_list.draw()
         self.bot_list.draw()
         arcade.draw_text(self.example+self.input_result, 50, 500, arcade.color.AFRICAN_VIOLET, 25, bold=True)
-        #arcade.draw_text(self.example+' '+self.input_result, 400, 500, arcade.color.AFRICAN_VIOLET, 25, bold=True)
+        arcade.draw_text(self.result_message, 400, 300, self.result_color, 25, bold=True, anchor_x='center')
 
     def update(self, delta_time):
-        self.bot_list.update()
-        if self.input_result == '10':
+        if self.bot_sprite.center_x >= 700:
+            self.setup()
+        if self.game_state == GameState.GAME:
+            self.physics_engine.apply_force(self.bot_sprite, (0,10))
+            # Set friction to zero for the player while moving
+            self.physics_engine.set_friction(self.bot_sprite, 0)
+            self.bot_list.update()
             self.player_list.update()
 
     def on_key_press(self, key, key_modifiers):
-        if key == keys.BACKSPACE:
-            self.input_result = self.input_result[:-1]
-        elif key == keys.RETURN:
-            self.example = self.generate_example()
-            self.input_result = ''
-        else:
-            if key in (
-                keys.KEY_0,
-                keys.KEY_1,
-                keys.KEY_2,
-                keys.KEY_3,
-                keys.KEY_4,
-                keys.KEY_5,
-                keys.KEY_6,
-                keys.KEY_7,
-                keys.KEY_8,
-                keys.KEY_9,
-            ):
-                self.input_result += chr(key)
-    
+        if self.game_state == GameState.MENU:
+            if key == keys.SPACE:
+                self.game_state = GameState.GAME
+        if self.game_state == GameState.GAME:
+            if key == keys.BACKSPACE:
+                self.input_result = self.input_result[:-1]
+            elif key == keys.RETURN:
+                try:
+                    result = float(self.input_result)
+                except ValueError:
+                    result = 0
+                if result == self.calc_example(self.example):
+                    self.player_sprite.center_x += 10
+                    self.result_message = 'Правильно'
+                    self.result_color = arcade.color.GO_GREEN
+                else:
+                    self.physics_engine.apply_force(self.bot_sprite, (10,0))
+            # Set friction to zero for the player while moving
+                    self.physics_engine.set_friction(self.bot_sprite, 0)
+                    self.bot_sprite.center_x += 10
+                    self.result_message = 'Не правильно'
+                    self.result_color = arcade.color.RED
+
+                self.input_result = ''
+                self.example = self.generate_example()
+
+            else:
+                if key in (
+                    keys.KEY_0,
+                    keys.KEY_1,
+                    keys.KEY_2,
+                    keys.KEY_3,
+                    keys.KEY_4,
+                    keys.KEY_5,
+                    keys.KEY_6,
+                    keys.KEY_7,
+                    keys.KEY_8,
+                    keys.KEY_9,
+                ):
+                    self.input_result += chr(key)
+
     def generate_example(self):
         count_args = random.randint(2, 4)
         operations = {
@@ -117,11 +173,14 @@ class MyGame(arcade.Window):
         
         return example
         
-        
 
 
-    def calc_result(self):
-        pass
+    def calc_example(self, example: str,):
+        temp = example.replace(':', '/').replace(' ','').replace('=','')
+        result = eval(temp)
+        return result
+    
+    
         
 def main():
     window = MyGame()
