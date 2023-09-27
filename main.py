@@ -3,15 +3,14 @@ from enum import Enum
 from typing import Optional
 import arcade
 import arcade.key as keys
-import operator
 
 SPRITE_SCALING_PLAYER = 1
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 
-PLAYER_MOVEMENT_SPEED = 7
-BOT_MOVEMENT_SPEED = 10
+PLAYER_MOVEMENT_SPEED = 5
+BOT_MOVEMENT_SPEED = 7
 ACCELERATION = 30
 DECELERATION = 20
 
@@ -62,7 +61,7 @@ class Bot(arcade.Sprite):
 
         self.hit_box = self.texture.hit_box_points
         self.x_odometer = 0
-                            
+
     def pymunk_moved(self, physics_engine, dx, dy, d_angle):
         self.x_odometer += dx
         if self.x_odometer > DISTANCE_TO_CHANGE_TEXTURE:
@@ -74,19 +73,17 @@ class Bot(arcade.Sprite):
 
 
 class Bordur(arcade.Sprite):
-
     def update(self):
         self.center_x -= 5
         if self.center_x < -25:
-            self.center_x = SCREEN_WIDTH+25
+            self.center_x = SCREEN_WIDTH +25
 
 
 class Line(arcade.Sprite):
-
     def update(self):
         self.center_x -= 5
         if self.center_x < -100:
-            self.center_x = SCREEN_WIDTH+100
+            self.center_x = SCREEN_WIDTH + 100
 
 
 class MyGame(arcade.Window):
@@ -195,7 +192,7 @@ class MyGame(arcade.Window):
                 self.physics_engine.apply_force(
                     self.bot_sprite, (-DECELERATION, 0)
                 )
-            
+
             if self.player_sprite.center_x >= 700:
                 self.setup()
                 self.game_state = GameState.MENU
@@ -253,24 +250,17 @@ class MyGame(arcade.Window):
                 ):
                     self.input_result += chr(key)
 
-    def generate_example(self):
-        count_args = random.randint(2, 4)
-        count_oper = random.randint(1, 3)
+    def generate_example_list(self, exemple_list, size):
+        print(exemple_list)
         operations = (
             '+',
             '-',
             '*',
             '/',
         )
+        operator = random.choice(operations)
+        if not exemple_list:
 
-        example = ''
-
-        exp_list = []
-        for _ in range(count_oper):
-            a = 0
-            b = 0
-            operator = random.choice(operations)
-            
             if operator == '/':
                 a = random.randint(1, 25)
                 b = random.randint(2, 10)
@@ -283,9 +273,9 @@ class MyGame(arcade.Window):
                 elif a > 25 and a <= 50:
                     b = random.randint(1, 10)
                 elif a > 10 and a <= 25:
-                    b = random.randint(1, 20)
+                    b = random.randint(1, 15)
                 else:
-                    b = random.randint(1, 100)
+                    b = random.randint(1, 20)
             elif operator == '-':
                 a = random.randint(1, 100)
                 b = random.randint(1, 100)
@@ -302,54 +292,82 @@ class MyGame(arcade.Window):
                 else:
                     b = random.randint(1, 100)
 
-            exp_list.append(f'{a} {operator} {b}')
+            exemple_list = [str(a), operator, str(b)]
+        else:
+            if operator == '+':
+                a = eval(''.join(exemple_list))
+                if a > 50:
+                    b = random.randint(1, 50)
+                elif a > 25 and a <= 50:
+                    b = random.randint(1, 25)
+                elif a > 10 and a <= 25:
+                    b = random.randint(1, 10)
+                else:
+                    b = random.randint(1, 100)
+                exemple_list += [operator, str(b)]
+            elif operator == '-':
+                a = eval(''.join(exemple_list))
+                b = random.randint(0, a)
+                if b:
+                    exemple_list += [operator, str(b)]
+            elif operator == '*':
+                if exemple_list[-2] != '*':
+                    if exemple_list[-2] == '-':
+                        print(exemple_list[:-2])
+                        a = eval(''.join(exemple_list[:-2]))
+                        c = int(a / int(exemple_list[-1]))
+                        b = random.randint(0, c)
+                        if b:
+                            exemple_list += [operator, str(b)]
+                    else:
+                        a = int(exemple_list[-1])
+                        if a > 50:
+                            b = random.randint(1, 5)
+                        elif a > 25 and a <= 50:
+                            b = random.randint(1, 10)
+                        elif a > 10 and a <= 25:
+                            b = random.randint(1, 15)
+                        else:
+                            b = random.randint(1, 20)
+                        exemple_list += [operator, str(b)]
+            elif operator == '/':
+                if exemple_list[-2] not in '/*':
+                    a = int(exemple_list[-1])
+                    b = random.randint(2, 10)
+                    c = a * b
+                    a = c
+                    if a < 100:
+                        exemple_list[-1] = str(a)
+                        exemple_list += [operator, str(b)]
 
-            example = exp_list[0]
-            for i in range(1, len(exp_list)-1):
-                value_1 = eval(exp_list[i-1])
-                value_2 = eval(exp_list[i])
-                operator = random.choice(operations)
-                example += operator + exp_list[i]
+
+        
+        size += -1
+        if size > 0:
+            return self.generate_example_list(exemple_list, size)
+        else:
+            return exemple_list
 
 
+    def generate_example(self):
+        count_oper = random.randint(1, 3)
 
+        example = ''
+        example_list = []
 
+        example_list = self.generate_example_list(example_list, count_oper)
 
+        example = ' '.join(example_list)
+      
+        example += ' = '
 
-
-        #example = ' '.join(exp_list)
-
-        '''
-        args = [random.randint(1, 100) for _ in range(count_args)]
-        for i, arg in enumerate(args):
-            
-            if len(args) == 4:
-                if i in (0, 1, 2) and '(' not in example:
-                    if random.randint(0, 1):
-                        example += '('
-           
-
-
-            operand = random.choice(list(operations.keys()))
-            example += f'{arg} {operand} '
-           
-            if len(args) == 4:
-
-                if i in (1, 2) and '(' in example and ')' not in example:
-                    if random.randint(0, 1):
-                        example = example[:-2]+' )'+example[-2]
-                elif i == 3 and '(' in example and ')' not in example:
-                    example = example[:-3]+') '+example[-2]
-            '''
-
-        #example = example[:-2]
-        example += '= '
-
-        return example
+        return example.replace('/',':')
 
     def calc_example(self, example: str,):
+        print('exm', example)
         temp = example.replace(':', '/').replace(' ', '').replace('=', '')
         result = eval(temp)
+        print('res', result)
         return result
 
 
