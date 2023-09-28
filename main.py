@@ -9,8 +9,8 @@ SPRITE_SCALING_PLAYER = 1
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 
-PLAYER_MOVEMENT_SPEED = 5
-BOT_MOVEMENT_SPEED = 7
+PLAYER_MOVEMENT_SPEED = 3
+BOT_MOVEMENT_SPEED = 5
 ACCELERATION = 30
 DECELERATION = 20
 
@@ -20,6 +20,7 @@ DISTANCE_TO_CHANGE_TEXTURE = 0.5
 class GameState(Enum):
     MENU = 1
     GAME = 2
+    END = 3
 
 
 class Player(arcade.Sprite):
@@ -30,13 +31,10 @@ class Player(arcade.Sprite):
         self.run_texture = []
         for i in range(1, 9):
             self.run_texture.append(arcade.load_texture(f'sprites/car{i}.png'))
-
         self.cur_texture = 0
         self.texture = self.idle_texture
-
         self.hit_box = self.texture.hit_box_points
         self.x_odometer = 0
-                            
     def pymunk_moved(self, physics_engine, dx, dy, d_angle):
         self.x_odometer += dx
         if self.x_odometer > DISTANCE_TO_CHANGE_TEXTURE:
@@ -72,14 +70,31 @@ class Bot(arcade.Sprite):
             self.texture = self.run_texture[self.cur_texture]
 
 
+class Shadow(arcade.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.scale = SPRITE_SCALING_PLAYER
+        self.shadow_texture = (arcade.load_texture('sprites/shadow.png'))
+        self.texture = self.shadow_texture
+        self.alpha = 180
+        self.hit_box = self.texture.hit_box_points
+
+
 class Bordur(arcade.Sprite):
     def update(self):
         self.center_x -= 5
         if self.center_x < -25:
-            self.center_x = SCREEN_WIDTH +25
+            self.center_x = SCREEN_WIDTH + 25
 
 
 class Line(arcade.Sprite):
+    def update(self):
+        self.center_x -= 5
+        if self.center_x < -100:
+            self.center_x = SCREEN_WIDTH + 100
+
+
+class Finish(arcade.Sprite):
     def update(self):
         self.center_x -= 5
         if self.center_x < -100:
@@ -100,29 +115,126 @@ class MyGame(arcade.Window):
         self.result_color = arcade.color.RED
         self.result_message = ''
         self.game_state = GameState.MENU
-        arcade.set_background_color(arcade.color.ALMOND)
+        arcade.set_background_color(arcade.color.SKY_BLUE)
         self.physics_engine = Optional[arcade.PymunkPhysicsEngine]
         self.bordur_sprite = None
         self.bordur_list = None
         self.line_sprite = None
         self.line_list = None
+        self.finish_sprite = None
+        self.finish_list = None
+        self.coeff_deceleration = 0
+        self.timer = None
+        self.total_time = None
+        self.mount = None
+        self.mount_x = None
+        self.mount_list = None
 
     def setup(self):
         self.player_list = arcade.SpriteList()
         self.bot_list = arcade.SpriteList()
         self.bordur_list = arcade.SpriteList()
         self.line_list = arcade.SpriteList()
+        self.finish_list = arcade.SpriteList()
 
+        self.mount_far_1 = arcade.create_polygon(
+            [
+                (-400, 200),
+                (200, 450),
+                (600, 200),
+            ],
+            (214, 170, 126)
+        )
+        self.mount_far_2 = arcade.create_polygon(
+            [
+                (0, 200),
+                (450, 550),
+                (800, 200),
+            ],
+            (214, 170, 126)
+        )
+        self.mount_far_3 = arcade.create_polygon(
+            [
+                (400, 200),
+                (650, 600),
+                (1000, 200),
+            ],
+            (214, 170, 126)
+        )
+        self.mount_far_4 = arcade.create_polygon(
+            [
+                (600, 200),
+                (900, 500),
+                (1200, 200),
+            ],
+            (214, 170, 126)
+        )
+        self.mount_far_list = arcade.ShapeElementList()
+        self.mount_far_list.append(self.mount_far_1)
+        self.mount_far_list.append(self.mount_far_2)
+        self.mount_far_list.append(self.mount_far_3)
+        self.mount_far_list.append(self.mount_far_4)
+
+     
+        self.mount_1 = arcade.create_polygon(
+            [
+                (-400, 100),
+                (200, 350),
+                (600, 100),
+            ],
+            arcade.color.ALMOND
+        )
+        self.mount_2 = arcade.create_polygon(
+            [
+                (0, 100),
+                (600, 450),
+                (1000, 100),
+            ],
+            arcade.color.ALMOND
+        )
+        self.mount_3 = arcade.create_polygon(
+            [
+                (600, 100),
+                (800, 400),
+                (1200, 100),
+            ],
+            arcade.color.ALMOND
+        )
+        self.mount_4 = arcade.create_polygon(
+            [
+                (800, 100),
+                (1200, 250),
+                (1600, 100),
+            ],
+            arcade.color.ALMOND
+        )
+        self.mount_list = arcade.ShapeElementList()
+        self.mount_list.append(self.mount_1)
+        self.mount_list.append(self.mount_2)
+        self.mount_list.append(self.mount_3)
+        self.mount_list.append(self.mount_4)
+        
+        self.timer = ''
+        self.total_time = 0.0
         self.player_sprite = Player()
         self.player_sprite.center_x = 50
         self.player_sprite.center_y = 70
+        self.player_shadow = Shadow()
+        self.player_shadow.center_x = 50
+        self.player_shadow.center_y = 32
+        self.player_list.append(self.player_shadow)
         self.player_list.append(self.player_sprite)
-
+        self.example = ''
+        self.result_message = 'Нажмите пробел для запуска'
+        self.result_color = arcade.color.GO_GREEN
         self.bot_sprite = Bot()
         self.bot_sprite.center_x = 50
         self.bot_sprite.center_y = 160
+        self.bot_shadow = Shadow()
+        self.bot_shadow.center_x = 50
+        self.bot_shadow.center_y = 122
+        self.player_list.append(self.bot_shadow)
         self.bot_list.append(self.bot_sprite)
-        self.example = self.generate_example()
         self.physics_engine = arcade.PymunkPhysicsEngine()
         self.physics_engine.add_sprite(
             self.player_sprite,
@@ -145,13 +257,23 @@ class MyGame(arcade.Window):
             line.center_y = 100
             self.line_list.append(line)
 
+        for i in range(8):
+            finish = Finish('sprites/finish.png', 0.25)
+            finish.center_x = 825
+            finish.center_y = i*25
+            self.finish_list.append(finish)
+
     def on_draw(self):
         arcade.start_render()
+        self.mount_far_list.draw()
+        self.mount_list.draw()
         arcade.draw_rectangle_filled(400, 100, 800, 200, arcade.color.DIM_GRAY)
-        self.player_list.draw()
-        self.bot_list.draw()
         self.bordur_list.draw()
         self.line_list.draw()
+        self.finish_list.draw()
+        self.player_list.draw()
+        self.bot_list.draw()
+
         arcade.draw_text(
             self.example+self.input_result,
             50,
@@ -169,14 +291,37 @@ class MyGame(arcade.Window):
             bold=True,
             anchor_x='center'
         )
+        arcade.draw_text(
+            self.timer,
+            600,
+            500,
+            arcade.color.GO_GREEN,
+            25,
+            bold=True
+        )
 
     def on_update(self, delta_time):
         self.physics_engine.step()
 
+        self.player_shadow.center_x = self.player_sprite.center_x
+        self.bot_shadow.center_x = self.bot_sprite.center_x
+
         if self.game_state == GameState.GAME:
+
+            self.mount_list.center_x -= 0.1
+            self.mount_far_list.center_x -= 0.05
+            self.total_time += delta_time
+            minutes = int(self.total_time) // 60
+            seconds = int(self.total_time) % 60
+            seconds_100s = int((self.total_time - seconds) * 100)
+            self.timer = f'{minutes:02d}:{seconds:02d}:{seconds_100s:02d}'
 
             self.bordur_list.update()
             self.line_list.update()
+
+            if (self.player_sprite.center_x >= 650
+               or self.bot_sprite.center_x >= 650):
+                self.finish_list.update()
 
             player_physics_object = self.physics_engine.get_physics_object(
                 self.player_sprite
@@ -186,24 +331,48 @@ class MyGame(arcade.Window):
             )
             if player_physics_object.body.velocity[0] > PLAYER_MOVEMENT_SPEED:
                 self.physics_engine.apply_force(
-                    self.player_sprite, (-DECELERATION, 0)
+                    self.player_sprite,
+                    (-(DECELERATION - self.coeff_deceleration), 0)
                 )
             if bot_physics_object.body.velocity[0] > BOT_MOVEMENT_SPEED:
                 self.physics_engine.apply_force(
-                    self.bot_sprite, (-DECELERATION, 0)
+                    self.bot_sprite,
+                    (-DECELERATION, 0)
                 )
 
-            if self.player_sprite.center_x >= 700:
-                self.setup()
-                self.game_state = GameState.MENU
+            if self.player_sprite.center_x >= self.finish_list.sprite_list[0].center_x:
+                self.game_state = GameState.END
+                self.result_message = 'Вы победили! Нажмите Esc'
+                self.result_color = arcade.color.GO_GREEN
 
-            if self.bot_sprite.center_x >= 700:
-                self.setup()
-                self.game_state = GameState.MENU
+            if self.bot_sprite.center_x >= self.finish_list.sprite_list[0].center_x:
+                self.result_message = 'Вы проиграли! Нажмите Esc'
+                self.result_color = arcade.color.RED
+                self.game_state = GameState.END
+
+        if self.game_state == GameState.END:
+            player_physics_object = self.physics_engine.get_physics_object(
+                self.player_sprite
+            )
+            bot_physics_object = self.physics_engine.get_physics_object(
+                self.bot_sprite
+            )
+            if player_physics_object.body.velocity[0] > 0:
+                self.physics_engine.apply_force(
+                    self.player_sprite,
+                    (-5, 0)
+                )
+            if bot_physics_object.body.velocity[0] > 0:
+                self.physics_engine.apply_force(
+                    self.bot_sprite,
+                    (-5, 0)
+                )
 
     def on_key_press(self, key, key_modifiers):
         if self.game_state == GameState.MENU:
             if key == keys.SPACE:
+                self.result_message = ''
+                self.example = self.generate_example()
                 self.game_state = GameState.GAME
                 self.physics_engine.apply_impulse(
                     self.player_sprite, (PLAYER_MOVEMENT_SPEED, 0)
@@ -220,6 +389,17 @@ class MyGame(arcade.Window):
                 except ValueError:
                     result = 0
                 if result == self.calc_example(self.example):
+                    self.coeff_deceleration = (
+                        len(
+                            self.example
+                            .replace('+', '')
+                            .replace('*', '')
+                            .replace(':', '')
+                            .replace('-', '')
+                            .replace('=', '')
+                            .split()
+                        )
+                    )
                     self.physics_engine.apply_impulse(
                         self.player_sprite, (ACCELERATION, 0)
                     )
@@ -249,6 +429,11 @@ class MyGame(arcade.Window):
                     keys.KEY_9,
                 ):
                     self.input_result += chr(key)
+        #if self.game_state == GameState.END:
+        if key == keys.ESCAPE:
+            self.game_state = GameState.MENU
+            self.setup()
+
 
     def generate_example_list(self, exemple_list, size):
         print(exemple_list)
