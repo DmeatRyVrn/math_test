@@ -9,12 +9,12 @@ SPRITE_SCALING_PLAYER = 1
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 
-PLAYER_MOVEMENT_SPEED = 3
-BOT_MOVEMENT_SPEED = 5
+PLAYER_MOVEMENT_SPEED = 2
+BOT_MOVEMENT_SPEED = 3
 ACCELERATION = 30
 DECELERATION = 20
 
-DISTANCE_TO_CHANGE_TEXTURE = 0.5
+DISTANCE_TO_CHANGE_TEXTURE = 0.1
 
 
 class GameState(Enum):
@@ -35,6 +35,7 @@ class Player(arcade.Sprite):
         self.texture = self.idle_texture
         self.hit_box = self.texture.hit_box_points
         self.x_odometer = 0
+
     def pymunk_moved(self, physics_engine, dx, dy, d_angle):
         self.x_odometer += dx
         if self.x_odometer > DISTANCE_TO_CHANGE_TEXTURE:
@@ -46,14 +47,15 @@ class Player(arcade.Sprite):
 
 
 class Bot(arcade.Sprite):
-
     def __init__(self):
         super().__init__()
         self.scale = SPRITE_SCALING_PLAYER
         self.idle_texture = (arcade.load_texture('sprites/carbot.png'))
-        self.run_texture = []    
+        self.run_texture = []
         for i in range(1, 9):
-            self.run_texture.append(arcade.load_texture(f'sprites/carbot{i}.png'))
+            self.run_texture.append(
+                arcade.load_texture(f'sprites/carbot{i}.png')
+            )
         self.cur_texture = 0
         self.texture = self.idle_texture
 
@@ -137,83 +139,126 @@ class MyGame(arcade.Window):
         self.line_list = arcade.SpriteList()
         self.finish_list = arcade.SpriteList()
 
-        self.mount_far_1 = arcade.create_polygon(
+        color1 = (219, 166, 123)
+        color2 = (189, 89, 40)
+        colors = (color1, color1, color2, color2)
+
+        self.mount_far_1 = arcade.create_triangles_filled_with_colors(
             [
                 (-400, 200),
                 (200, 450),
                 (600, 200),
             ],
-            (214, 170, 126)
+            colors
         )
-        self.mount_far_2 = arcade.create_polygon(
+        self.mount_far_2 = arcade.create_triangles_filled_with_colors(
             [
                 (0, 200),
                 (450, 550),
                 (800, 200),
             ],
-            (214, 170, 126)
+            colors
         )
-        self.mount_far_3 = arcade.create_polygon(
+        self.mount_far_3 = arcade.create_triangles_filled_with_colors(
             [
                 (400, 200),
                 (650, 600),
                 (1000, 200),
             ],
-            (214, 170, 126)
+            colors
         )
-        self.mount_far_4 = arcade.create_polygon(
+        self.mount_far_4 = arcade.create_triangles_filled_with_colors(
             [
                 (600, 200),
                 (900, 500),
                 (1200, 200),
             ],
-            (214, 170, 126)
+            colors
+        )
+        self.mount_far_5 = arcade.create_triangles_filled_with_colors(
+            [
+                (900, 200),
+                (1100, 550),
+                (1500, 200),
+            ],
+            colors
         )
         self.mount_far_list = arcade.ShapeElementList()
         self.mount_far_list.append(self.mount_far_1)
         self.mount_far_list.append(self.mount_far_2)
         self.mount_far_list.append(self.mount_far_3)
         self.mount_far_list.append(self.mount_far_4)
+        self.mount_far_list.append(self.mount_far_5)
 
-     
-        self.mount_1 = arcade.create_polygon(
+        color1 = (215, 214, 165)
+        color2 = (219, 166, 123)
+        colors = (color1, color1, color2, color2)
+
+        self.mount_1 = arcade.create_triangles_filled_with_colors(
             [
                 (-400, 100),
                 (200, 350),
                 (600, 100),
             ],
-            arcade.color.ALMOND
+            colors
         )
-        self.mount_2 = arcade.create_polygon(
+        self.mount_2 = arcade.create_triangles_filled_with_colors(
             [
                 (0, 100),
                 (600, 450),
                 (1000, 100),
             ],
-            arcade.color.ALMOND
+            colors
         )
-        self.mount_3 = arcade.create_polygon(
+        self.mount_3 = arcade.create_triangles_filled_with_colors(
             [
                 (600, 100),
                 (800, 400),
                 (1200, 100),
             ],
-            arcade.color.ALMOND
+            colors
         )
-        self.mount_4 = arcade.create_polygon(
+        self.mount_4 = arcade.create_triangles_filled_with_colors(
             [
-                (800, 100),
-                (1200, 250),
-                (1600, 100),
+                (700, 100),
+                (1100, 300),
+                (1400, 100),
             ],
-            arcade.color.ALMOND
+            colors
+        )
+        self.mount_5 = arcade.create_triangles_filled_with_colors(
+            [
+                (1100, 100),
+                (1300, 450),
+                (1700, 100),
+            ],
+            colors
+        )
+        self.mount_6 = arcade.create_triangles_filled_with_colors(
+            [
+                (1300, 100),
+                (1600, 350),
+                (2000, 100),
+            ],
+            colors
+        )
+        self.mount_7 = arcade.create_triangles_filled_with_colors(
+            [
+                (1450, 100),
+                (1950, 400),
+                (2350, 100),
+            ],
+            colors
         )
         self.mount_list = arcade.ShapeElementList()
         self.mount_list.append(self.mount_1)
         self.mount_list.append(self.mount_2)
         self.mount_list.append(self.mount_3)
         self.mount_list.append(self.mount_4)
-        
+        self.mount_list.append(self.mount_5)
+        self.mount_list.append(self.mount_6)
+        self.mount_list.append(self.mount_7)
+
         self.timer = ''
         self.total_time = 0.0
         self.player_sprite = Player()
@@ -313,7 +358,9 @@ class MyGame(arcade.Window):
             self.total_time += delta_time
             minutes = int(self.total_time) // 60
             seconds = int(self.total_time) % 60
-            seconds_100s = int((self.total_time - seconds) * 100)
+            seconds_100s = int(
+                (self.total_time - seconds - minutes * 60) * 100
+            )
             self.timer = f'{minutes:02d}:{seconds:02d}:{seconds_100s:02d}'
 
             self.bordur_list.update()
@@ -340,12 +387,16 @@ class MyGame(arcade.Window):
                     (-DECELERATION, 0)
                 )
 
-            if self.player_sprite.center_x >= self.finish_list.sprite_list[0].center_x:
+            if self.player_sprite.center_x >= (
+                self.finish_list.sprite_list[0].center_x
+            ):
                 self.game_state = GameState.END
                 self.result_message = 'Вы победили! Нажмите Esc'
                 self.result_color = arcade.color.GO_GREEN
 
-            if self.bot_sprite.center_x >= self.finish_list.sprite_list[0].center_x:
+            if self.bot_sprite.center_x >= (
+                self.finish_list.sprite_list[0].center_x
+            ):
                 self.result_message = 'Вы проиграли! Нажмите Esc'
                 self.result_color = arcade.color.RED
                 self.game_state = GameState.END
@@ -429,14 +480,11 @@ class MyGame(arcade.Window):
                     keys.KEY_9,
                 ):
                     self.input_result += chr(key)
-        #if self.game_state == GameState.END:
         if key == keys.ESCAPE:
             self.game_state = GameState.MENU
             self.setup()
 
-
     def generate_example_list(self, exemple_list, size):
-        print(exemple_list)
         operations = (
             '+',
             '-',
@@ -447,20 +495,20 @@ class MyGame(arcade.Window):
         if not exemple_list:
 
             if operator == '/':
-                a = random.randint(1, 25)
+                a = random.randint(1, 15)
                 b = random.randint(2, 10)
                 c = a * b
                 a = c
             elif operator == '*':
                 a = random.randint(1, 100)
                 if a > 50:
-                    b = random.randint(1, 5)
+                    b = random.randint(1, 3)
                 elif a > 25 and a <= 50:
-                    b = random.randint(1, 10)
+                    b = random.randint(1, 5)
                 elif a > 10 and a <= 25:
-                    b = random.randint(1, 15)
+                    b = random.randint(1, 10)
                 else:
-                    b = random.randint(1, 20)
+                    b = random.randint(1, 15)
             elif operator == '-':
                 a = random.randint(1, 100)
                 b = random.randint(1, 100)
@@ -498,7 +546,6 @@ class MyGame(arcade.Window):
             elif operator == '*':
                 if exemple_list[-2] != '*':
                     if exemple_list[-2] == '-':
-                        print(exemple_list[:-2])
                         a = eval(''.join(exemple_list[:-2]))
                         c = int(a / int(exemple_list[-1]))
                         b = random.randint(0, c)
@@ -507,13 +554,13 @@ class MyGame(arcade.Window):
                     else:
                         a = int(exemple_list[-1])
                         if a > 50:
-                            b = random.randint(1, 5)
+                            b = random.randint(1, 3)
                         elif a > 25 and a <= 50:
-                            b = random.randint(1, 10)
+                            b = random.randint(1, 5)
                         elif a > 10 and a <= 25:
-                            b = random.randint(1, 15)
+                            b = random.randint(1, 10)
                         else:
-                            b = random.randint(1, 20)
+                            b = random.randint(1, 15)
                         exemple_list += [operator, str(b)]
             elif operator == '/':
                 if exemple_list[-2] not in '/*':
@@ -524,15 +571,11 @@ class MyGame(arcade.Window):
                     if a < 100:
                         exemple_list[-1] = str(a)
                         exemple_list += [operator, str(b)]
-
-
-        
         size += -1
         if size > 0:
             return self.generate_example_list(exemple_list, size)
         else:
             return exemple_list
-
 
     def generate_example(self):
         count_oper = random.randint(1, 3)
@@ -543,16 +586,14 @@ class MyGame(arcade.Window):
         example_list = self.generate_example_list(example_list, count_oper)
 
         example = ' '.join(example_list)
-      
+
         example += ' = '
 
-        return example.replace('/',':')
+        return example.replace('/', ':')
 
     def calc_example(self, example: str,):
-        print('exm', example)
         temp = example.replace(':', '/').replace(' ', '').replace('=', '')
         result = eval(temp)
-        print('res', result)
         return result
 
 
